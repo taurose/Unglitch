@@ -122,6 +122,7 @@ There were also a few special cases which had to be modified slightly differentl
 
 Entities can sometimes also glitch trough *any* block on chunk load (when they are read from NBT). This should affect pretty much any environment (client and server). I first encountered this issue with only a few iron golems enclosed within glass walls (2x2 horizontal space). It took me alot of attempts to reproduce this issue, but ultimately I was able to create a save file that causes the glitch to occur on load.
 
+### The Cause ###
 Let me start by saying that I'm no expert when it comes to floating point arithmetics, so there might be more to the issue than what I found out.
 
 Anyways, here's what I think is happening:
