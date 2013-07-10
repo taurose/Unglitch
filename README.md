@@ -1,5 +1,4 @@
-#  MC-2025 Fix (Unglitch) by taurose - No more mobs permanently glithing through walls #
-----------
+#  MC-2025 Fix (Unglitch) by taurose #
 Unglitch is a Minecraft mod to stop entities from permanently glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025).
 These glitches were most noticable in the past few versions with baby animals. Although this particular bug has been fixed in 1.6.2, there are (at least) two remaining bugs leading to the same issue.
 
@@ -211,4 +210,9 @@ The modded source code looks like this:
 
 This way, entities which are barely inside of blocks won't be able to move further inside. By using Math.ulp, the epsilon number scales with the magnitude of possible rounding errors.
 
+
+
+## Licensing ##
+
+The original source code of Minecraft belongs to [https://mojang.com/](https://mojang.com/ "Mojang"). I make no claim of ownership to any of the source code modifications shown in this repository. 
 	
