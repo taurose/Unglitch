@@ -2,7 +2,7 @@
 Unglitch is a Minecraft mod to stop entities from permanently glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025).
 These glitches were most noticable in the past few versions with baby animals. Although this particular bug has been fixed in 1.6.2, there are (at least) two remaining bugs leading to the same issue.
 
-Besides the mod download, there's also the source code (search for "Unglitch" to quickly find the changes), and two of my test worlds (on for each bug) in this repository.
+Besides the mod download, there's also the source code (search for "Unglitch" to quickly find the changes), and two of my test worlds (one for each bug) in this repository.
 
 And here's a rather technical description of the two issues I've found and how I solved them in the mod: 
 
@@ -217,3 +217,4 @@ This way, entities which are barely inside of blocks won't be able to move furth
 
 The original source code of Minecraft belongs to [https://mojang.com/](https://mojang.com/ "Mojang"). I make no claim of ownership to any of the source code modifications shown in this repository. 
 	
+[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/0ad0fa5d8733c89cd292d40d3f252c3f "githalytics.com")](http://githalytics.com/taurose/Unglitch)
