@@ -1,0 +1,4 @@
+Several fenced areas with mobs inside. Start in single player.
+
+Without Unglitch: Mobs regularly escape their fenced areas.
+With Unglitch: No escaping mobs.

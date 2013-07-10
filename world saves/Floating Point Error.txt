@@ -1,0 +1,4 @@
+Iron Golems inside a glass tower. Ignore the rest.
+
+Without Unglitch: Iron golems will glitch through the glass and get killed by the surrounding lava.
+With Unglitch: Golems will stay inside the glass tower.
