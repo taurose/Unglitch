@@ -1,7 +1,7 @@
 #  MC-2025 Fix (Unglitch) by taurose #
 Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10).
 
-Besides the mod download, the repo also includes relevant source code snippets (search for "Unglitch" to quickly find the changes in larger files), and some test worlds.
+Besides the mod download, the repo also includes relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
 
 Here's a rather technical description of the issues I've found and how I solved them in the mod: 
 
@@ -152,4 +152,4 @@ Unfortunately, there are still several scenarios which may still cause temporary
 
 The original source code of Minecraft belongs to [https://mojang.com/](https://mojang.com/ "Mojang"). I make no claim of ownership to any of the source code modifications shown in this repository. 
 	
-[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/0ad0fa5d8733c89cd292d40d3f252c3f "githalytics.com")](http://githalytics.com/taurose/Unglitch)
+[![githalytics.com alpha](https://cruel-carlota.gopagoda.com/0ad0fa5d8733c89cd292d40d3f252c3f "githalytics.com")](http://githalytics.com/taurose/Unglitch)
