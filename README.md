@@ -1,15 +1,14 @@
 #  MC-2025 Fix (Unglitch) by taurose #
-Unglitch is a Minecraft mod to stop entities from permanently glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025).
-These glitches were most noticable in the past few versions with baby animals. Although this particular bug has been fixed in 1.6.2, there are (at least) two remaining bugs leading to the same issue.
+Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10).
 
-Besides the mod download, there's also the source code (search for "Unglitch" to quickly find the changes), and two of my test worlds (one for each bug) in this repository.
+Besides the mod download, the repo also includes relevant source code snippets (search for "Unglitch" to quickly find the changes in larger files), and some test worlds.
 
-And here's a rather technical description of the two issues I've found and how I solved them in the mod: 
+Here's a rather technical description of the issues I've found and how I solved them in the mod: 
 
 
 ## 1) Race Condition (Client vs. Server Thread) ##
 
-Entities are sometimes able to escape fenced areas by "glitching" through blocks (happens during normal gameplay). This can only happen if an integrated server is used (single player, or opened to LAN) and only with specific blocks. The more entities there are, the likelier it is for them to escape.
+Entities are sometimes able to escape fenced areas by "glitching" through blocks during normal gameplay. This can only happen if an **integrated server** is used (single player, or opened to LAN) and only with specific blocks. The more entities collide with a certain block, the likelier it is for them to escape.
 
  
 ### The Cause ###
@@ -76,51 +75,10 @@ I've found the following blocks to be affected in a similar manner:
 ### The Solution ###
 To my knowledge, there are several possible solutions to fix this. One solution could be  to synchronize the threads, so that they won't collect the collision boxes of the same block at the same type, or use two different block objects for client and server. However, I wasn't able to find a solution that wouldn't involve lots of code changes; so, for the mod, I decided to rewrite the methods to not call *setBlockBounds* anymore, and instead construct the bounding box object directly with the calculated values. In my opinion, this is the cleanest solution.
 
-For example, the new code for BlockFence now looks like this:
-
-	public void addCollisionBoxesToList(...){
-		...
-	
-		if(...){
-			// create and add north-south piece
-			this.addCollisionBoxToListWithBounds(...);  
-		}
-	
-		...
-		
-		if(...){
-            // create and add east-west or center piece (isolated fence)
-	        this.addCollisionBoxToListWithBounds(...);
-		}
-	
-		...
-	}
-
-I added the method *addCollisionBoxToListWithBounds*, which acts as a replacement for *setBlockBounds* and *super.addCollisionBoxesToList* that does not store any values within the block object.  
-
-In other cases, the original, problematic methods looked like this:
-
-	public AxisAlignedBB getCollisionBoundingBoxFromPool(World par1World, int par2, int par3, int par4)
-    {
-        this.setBlockBoundsBasedOnState(par1World, par2, par3, par4);
-        return super.getCollisionBoundingBoxFromPool(par1World, par2, par3, par4);
-    }
-
-To solve these cases, I duplicated the *setBlockBoundsBasedOnState* method (which calls *setBlockBounds*) to create a *getBlockBoundsBasedOnState* method which  directly returns the bounding box. Now, the code above could be changed to this:
-
-    public AxisAlignedBB getCollisionBoundingBoxFromPool(World par1World, int par2, int par3, int par4)
-    {
-        return this.getBlockBoundsBasedOnState(par1World, par2, par3, par4);
-    }
-
-
-There were also a few special cases which had to be modified slightly differently. As I mentioned before, the goal for all blocks was to eliminate all *setBlockBounds* calls which are used to construct a collision bounding box.
-
-
 
 ## 2) Floating Point Errors on Entity Load ##
 
-Entities can sometimes also glitch trough *any* block on chunk load (when they are read from NBT). This should affect pretty much any environment (client and server). I first encountered this issue with only a few iron golems enclosed within glass walls (2x2 horizontal space). It took me alot of attempts to reproduce this issue, but ultimately I was able to create a save file that causes the glitch to occur on load.
+Entities can sometimes also glitch trough *any* block on chunk load (when they are read from NBT). This should affect pretty much any environment (client and server). It seems to happen most often when the X or Z coordinate is close to a power of two, or when an entity is moving upwards.
 
 ### The Cause ###
 Let me start by saying that I'm no expert when it comes to floating point arithmetics, so there might be more to the issue than what I found out.
@@ -128,25 +86,10 @@ Let me start by saying that I'm no expert when it comes to floating point arithm
 Anyways, here's what I think is happening:
 In Minecraft, every entity has two ways to describe their positions:
 
-- this.posX / this.posY / this.posZ: the center of the entity
+- this.posX / this.posY / this.posZ: the center of the entity (min coordinate for y)
 - this.boundingBox: contains minimum and maximum coordinates of the entity's bounding box (minX, minY, minZ, maxX, ..)
 
-Collision checks (happen every game tick) are done using only the bounding box. And once they are finished, the bounding box values are applied back to the posX/posY/posZ fields to keep everything in sync:
-
-	this.posX = (this.boundingBox.minX + this.boundingBox.maxX) / 2.0D;
-    this.posY = this.boundingBox.minY + (double)this.yOffset - (double)this.ySize;
-    this.posZ = (this.boundingBox.minZ + this.boundingBox.maxZ) / 2.0D;
-
-When an entity is saved, only the posX, posY and posZ attributes are saved. To recreate the bounding box after reloading the entity, the following code is executed:
-
-    float var7 = this.width / 2.0F;
-    float var8 = this.height;
-    this.boundingBox.setBounds(this.posX - (double)var7, 
-								this.posY - (double)this.yOffset + (double)this.ySize, 
-								this.posZ - (double)var7, 
-								this.posX + (double)var7, 
-								this.posY - (double)this.yOffset + (double)this.ySize + (double)var8, 
-								this.posZ + (double)var7);
+Collision checks (happen every game tick) are done using only the bounding box. And once they are finished, the bounding box values are applied back to the posX/posY/posZ fields to keep everything in sync. When an entity is saved, only the posX, posY and posZ attributes are saved, and when it is loaded again, the bounding box will be recreated from these values. 
     
 The problem I found with this, is that under rare circumstances, the recreated bounding box differs from the original one. For example, if there a was a full solid block from x=0.0 to x=1.0, and an entity with a width=1.0 would collide with it, the x-dimension of its bounding box could end up like this (fictional example with arbitrary values):
 
@@ -168,49 +111,41 @@ During the collision check, Minecraft will consider the entity as being inside t
 
 ### The Solution ###
 
-Again, there might be a couple of valid solutions. Though from what I know about floating point arithmetics, such errors are bound to happen. A common way to prevent errors caused by this is to use an epsilon value for comparisons. So I modified the methods responsible for determining whether a collision box blocks the attempted movement of an entity. The same methods are also responsible for reducing the movement vector accordingly.
+Again, there might be a couple of valid solutions. Though from what I know about floating point arithmetics, such errors are bound to happen. A common way to prevent errors caused by this is to use an epsilon value for comparisons. So I replaced the comparisons responsible for determining whether a collision box blocks the attempted movement of an entity with a method described here: [http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm](http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm)
 
-Here's a (refactored) snippet from the original (MCP) source code of AxisAlignedBoundingBox->calculateXOffset:
 
-	
-    if (moveX > 0.0D)  // entity attempts to move east
-    {
-		// smallest distance between bounding boxes of block and entity
-		// can be slightly smaller than 0 in case of floating point errors
-        distanceX = this.minX - entityBB.maxX;	
+This way, entities which are barely inside of blocks won't be able to move further inside and will be pushed out instead. By comparing the integer values, the accepted error range scales with the magnitude of possible rounding errors. However, even for coordinates at 10M, the range will be below a millionth, so there should be little side effects on game play.
 
-        if (distanceX >= 0 && distanceX < moveX) 
-        {
-			// reduce movement of entity to block bounds
-            moveX = distanceX;
-        }
-    }
 
-	if(moveX < 0.0D) // entity attempts to move west
-	{
-		...
-	}
+## 3) Entity Position Synchronization Issues
 
-The modded source code looks like this:
+In the current *EntityTrackerEntry* implementation (the class that sends position updates of entities) there are several logical bugs that may cause the clients' and server's entity positions to go out of sync. The client-side misplacements result in glitches, which are usually resolved with the next (relative or absolute) position update. I've found the following errors:
 
-	if (moveX > 0.0D)
-    {
-        distanceX = this.minX - entityBB.maxX;
-		double eps = 5 * Math.ulp(this.minX);
-	
-        if (distanceX >= -eps && distanceX < moveX)
-        {
-            moveX = Math.max(0, distanceX);
-        }
-    }
+* when an absolute position update is sent (*Packet34EntityTeleport*), the server does not always save the entity's position (for subsequent relative position updates)
+* when no packet is sent during the first (attempted) update, the server *does* save the position
+* the spawn packets contain the entity's current position rather than the one saved in the tracker object
 
-	if(moveX < 0.0D) // entity attempts to move west
-	{
-		...
-	}
+Interestingly, this also fixes [https://mojang.atlassian.net/browse/MC-19331](https://mojang.atlassian.net/browse/MC-19331 "MC-19331"). That's because when placing a minecart on a slope, the server first sends the lower position (as if it was placed on flat rails) in the spawn packet, and then attempts to update the heightened position, which is, however, canceled (first update), yet the position is saved as if it was sent to the clients.
 
-This way, entities which are barely inside of blocks won't be able to move further inside. By using Math.ulp, the epsilon number scales with the magnitude of possible rounding errors.
 
+## 4) Adjusting the Position Received from Server
+First off, I guess this is not really a bug requiring a fix, but rather a limitation due to minecraft updating positions in ints and bytes rather than doubles (for performance reasons), which requires a decent workaround. In the end, the issue boils down to received positions being off by up to 1/32, which leads to massive visual glitches if not adjusted in some way.
+
+There's already a server-side workaround in place which is working quite well, especially with the other issues mentioned here being solved. However, in some set-ups, it works very poorly, so I decided to come up with my own, client-side workaround which works by moving the entity from its maximally possible position (all coordinates +1/32) back to the original position (true position rounded towards negative infinity by the server).
+
+
+## 5) Miscellaneous
+* When the client receives a spawn packet of a baby animal, their reduced size is applied after setting the spawn position, which can cause temporary glitches until the first position update  
+* I've also implemented a tiny workaround to the client not considering the swimming capabilities of some mobs, which could falsely make them appear to be sinking.
+
+
+## Remaining Issues
+Unfortunately, there are still several scenarios which may still cause temporary client-side glitches, but I hope that all permanent ones are solved with this.
+
+* when starting a game (or teleporting), some mobs may glitch out for a few seconds, because not all adjacents chunks have been received before the (client-side) mob spawn
+* an entity barely standing on a cliff can appear to repeatedly fall down client-side
+* spiders may appear to fall down even though their climbing skills keep them in the air 
+* probably more
 
 
 ## Licensing ##
