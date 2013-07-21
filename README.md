@@ -1,7 +1,7 @@
-#  MC-2025 Fix (Unglitch) by taurose #
-Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10).
+#  Unglitch: MC-2025 fix (and more) by taurose #
+Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10). It also fixes some other glitches related to entities (see 5).
 
-Besides the mod download, the repo also includes relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
+Besides the mod download, this repo also includes relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
 
 Here's a rather technical description of the issues I've found and how I solved them in the mod: 
 
@@ -136,15 +136,15 @@ There's already a server-side workaround in place which is working quite well, e
 
 ## 5) Miscellaneous
 * When the client receives a spawn packet of a baby animal, their reduced size is applied after setting the spawn position, which can cause temporary glitches until the first position update  
-* I've also implemented a tiny workaround to the client not considering the swimming capabilities of some mobs, which could falsely make them appear to be sinking.
+* I've implemented a tiny workaround for the client not considering the swimming capabilities of some mobs, which could falsely make them appear to be sinking.
+* I've also implemented a client-side workaround to fix spiders falsely appearing to fall down
 
 
 ## Remaining Issues
 Unfortunately, there are still several scenarios which may still cause temporary client-side glitches, but I hope that all permanent ones are solved with this.
 
-* when starting a game (or teleporting), some mobs may glitch out for a few seconds, because not all adjacents chunks have been received before the (client-side) mob spawn
-* an entity barely standing on a cliff can appear to repeatedly fall down client-side
-* spiders may appear to fall down even though their climbing skills keep them in the air 
+* when starting a game (or teleporting), some mobs may glitch out for a few seconds, because not all adjacents chunks have been received before the (client-side) mob spawn. This happens quite rarely and fixes itself very quickly though.
+* an entity barely standing on a cliff can appear to repeatedly fall down client-side. This is related to the temporary client-side glitches (see 4). I decided not to pursue this for the mod, because it would probably overcomplicate the code and because I find this glitch far less annoying than the others, mostly because it can't add up like the others do in certain mob contraptions (multiple mobs would just push each other off the cliff). 
 * probably more
 
 

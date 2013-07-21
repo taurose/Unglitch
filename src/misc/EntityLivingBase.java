@@ -1,4 +1,165 @@
 
+    public void moveEntityWithHeading(float par1, float par2)
+    {
+        double var10;
+
+        if (this.isInWater() && (!(this instanceof EntityPlayer) || !((EntityPlayer)this).capabilities.isFlying))
+        {
+            var10 = this.posY;
+            this.moveFlying(par1, par2, this.isAIEnabled() ? 0.04F : 0.02F);
+            this.moveEntity(this.motionX, this.motionY, this.motionZ);
+            this.motionX *= 0.800000011920929D;
+            this.motionY *= 0.800000011920929D;
+            this.motionZ *= 0.800000011920929D;
+            this.motionY -= 0.02D;
+
+            if (this.isCollidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + 0.6000000238418579D - this.posY + var10, this.motionZ))
+            {
+                this.motionY = 0.30000001192092896D;
+            }
+        }
+        else if (this.handleLavaMovement() && (!(this instanceof EntityPlayer) || !((EntityPlayer)this).capabilities.isFlying))
+        {
+            var10 = this.posY;
+            this.moveFlying(par1, par2, 0.02F);
+            this.moveEntity(this.motionX, this.motionY, this.motionZ);
+            this.motionX *= 0.5D;
+            this.motionY *= 0.5D;
+            this.motionZ *= 0.5D;
+            this.motionY -= 0.02D;
+
+            if (this.isCollidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + 0.6000000238418579D - this.posY + var10, this.motionZ))
+            {
+                this.motionY = 0.30000001192092896D;
+            }
+        }
+        else
+        {
+            float var3 = 0.91F;
+
+            if (this.onGround)
+            {
+                var3 = 0.54600006F;
+                int var4 = this.worldObj.getBlockId(MathHelper.floor_double(this.posX), MathHelper.floor_double(this.boundingBox.minY) - 1, MathHelper.floor_double(this.posZ));
+
+                if (var4 > 0)
+                {
+                    var3 = Block.blocksList[var4].slipperiness * 0.91F;
+                }
+            }
+
+            float var8 = 0.16277136F / (var3 * var3 * var3);
+            float var5;
+
+            if (this.onGround)
+            {
+                var5 = this.getAIMoveSpeed() * var8;
+            }
+            else
+            {
+                var5 = this.jumpMovementFactor;
+            }
+
+            this.moveFlying(par1, par2, var5);
+            var3 = 0.91F;
+
+            if (this.onGround)
+            {
+                var3 = 0.54600006F;
+                int var6 = this.worldObj.getBlockId(MathHelper.floor_double(this.posX), MathHelper.floor_double(this.boundingBox.minY) - 1, MathHelper.floor_double(this.posZ));
+
+                if (var6 > 0)
+                {
+                    var3 = Block.blocksList[var6].slipperiness * 0.91F;
+                }
+            }
+
+            if (this.isOnLadder())
+            {
+                float var11 = 0.15F;
+
+                if (this.motionX < (double)(-var11))
+                {
+                    this.motionX = (double)(-var11);
+                }
+
+                if (this.motionX > (double)var11)
+                {
+                    this.motionX = (double)var11;
+                }
+
+                if (this.motionZ < (double)(-var11))
+                {
+                    this.motionZ = (double)(-var11);
+                }
+
+                if (this.motionZ > (double)var11)
+                {
+                    this.motionZ = (double)var11;
+                }
+
+                this.fallDistance = 0.0F;
+
+                if (this.motionY < -0.15D)
+                {
+                    this.motionY = -0.15D;
+                }
+
+                boolean var7 = this.isSneaking() && this instanceof EntityPlayer;
+
+                if (var7 && this.motionY < 0.0D)
+                {
+                    this.motionY = 0.0D;
+                }
+            }
+
+            this.moveEntity(this.motionX, this.motionY, this.motionZ);
+
+            // Unglitch Start
+            //if (this.isCollidedHorizontally && this.isOnLadder())
+            if ((this.isCollidedHorizontally || (this.worldObj.isRemote && this instanceof EntitySpider))
+                && this.isOnLadder())
+            {
+                // --
+                this.motionY = 0.2D;
+            }
+
+            if (this.worldObj.isRemote && (!this.worldObj.blockExists((int)this.posX, 0, (int)this.posZ) || !this.worldObj.getChunkFromBlockCoords((int)this.posX, (int)this.posZ).isChunkLoaded))
+            {
+                if (this.posY > 0.0D)
+                {
+                    this.motionY = -0.1D;
+                }
+                else
+                {
+                    this.motionY = 0.0D;
+                }
+            }
+            else
+            {
+                this.motionY -= 0.08D;
+            }
+
+            this.motionY *= 0.9800000190734863D;
+            this.motionX *= (double)var3;
+            this.motionZ *= (double)var3;
+        }
+
+        this.prevLimbYaw = this.limbYaw;
+        var10 = this.posX - this.prevPosX;
+        double var9 = this.posZ - this.prevPosZ;
+        float var12 = MathHelper.sqrt_double(var10 * var10 + var9 * var9) * 4.0F;
+
+        if (var12 > 1.0F)
+        {
+            var12 = 1.0F;
+        }
+
+        this.limbYaw += (var12 - this.limbYaw) * 0.4F;
+        this.limbSwing += this.limbYaw;
+    }
+
+
     public void onLivingUpdate()
     {
         if (this.jumpTicks > 0)
