@@ -189,6 +189,11 @@
     private Packet getPacketForThisEntity()
     {
         Packet packet = getPacketForThisEntity_old();
+
+        if(this.trackedEntity instanceof EntityItemFrame || this.trackedEntity instanceof EntityLeashKnot){
+                return packet;
+        }
+
         if(packet instanceof Packet23VehicleSpawn){
             Packet23VehicleSpawn spawn = (Packet23VehicleSpawn) packet;
             spawn.xPosition = this.lastScaledXPosition;
