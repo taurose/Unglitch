@@ -105,7 +105,7 @@
         else
         {
             // Unglitch Start - Compensate for missing swimming AI client-side
-            if(this.isAIEnabled() && this.canEntitySwim() && (this.isInWater() || this.handleLavaMovement())){
+            if(this.worldObj.isRemote && this.isAIEnabled() && this.canEntitySwim() && (this.isInWater() || this.handleLavaMovement())){
                 this.motionY += 0.03999999910593033D;
             }
             // --
