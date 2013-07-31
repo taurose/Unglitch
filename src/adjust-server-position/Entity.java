@@ -93,3 +93,12 @@
         return new double[]{(bb.maxX + bb.minX) / 2d, bb.minY + (double)this.yOffset - (double)this.ySize, (bb.maxZ + bb.minZ) / 2d};
 
     }
+
+    /**
+     * Teleports the entity to its last known server position, also moving it out of collisions (if possible).
+     * Currently only used for entities ridden by the player shortly after starting the game.
+     */
+    public void readjustServerPosition(){
+        double[] adj = this.adjustServerPosition(this.serverPosX / 32.0d, this.serverPosY / 32.0d, this.serverPosZ / 32.0d);
+        this.setPosition(adj[0], adj[1], adj[2]);
+    }
