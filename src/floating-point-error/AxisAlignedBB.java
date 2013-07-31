@@ -1,3 +1,18 @@
+    // Unglitch Start
+    // http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
+    public static boolean isGreaterThanWithEpsilon(double a, double b, int maxUlps)
+    {
+        long aBits = Double.doubleToRawLongBits(a);
+        // Make aBits lexicographically ordered as a twos-complement
+        if (aBits < 0)
+            aBits = 0x8000000000000000L - aBits;
+        // Make bBits lexicographically ordered as a twos-complement
+        long bBits = Double.doubleToRawLongBits(b);
+        if (bBits < 0)
+            bBits = 0x8000000000000000L - bBits;
+        return (aBits - bBits) >= -maxUlps;
+    }
+    // --
 
 
     /**
@@ -208,18 +223,3 @@
         }
     }
 
-    // Unglitch Start
-    // http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
-    public static boolean isGreaterThanWithEpsilon(double a, double b, int maxUlps)
-    {
-        long aBits = Double.doubleToRawLongBits(a);
-        // Make aBits lexicographically ordered as a twos-complement int
-        if (aBits < 0)
-            aBits = 0x8000000000000000l - aBits;
-        // Make bBits lexicographically ordered as a twos-complement int
-        long bBits = Double.doubleToRawLongBits(b);
-        if (bBits < 0)
-            bBits = 0x8000000000000000l - bBits;
-        return (aBits - bBits) >= -maxUlps;
-    }
-    // --

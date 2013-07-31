@@ -104,83 +104,83 @@
                 }
                 // --
 
-
                 if (this.sendVelocityUpdates)
                 {
-                    double var13 = this.myEntity.motionX - this.motionX;
-                    double var15 = this.myEntity.motionY - this.motionY;
-                    double var17 = this.myEntity.motionZ - this.motionZ;
+                    double var13 = this.trackedEntity.motionX - this.lastTrackedEntityMotionX;
+                    double var15 = this.trackedEntity.motionY - this.lastTrackedEntityMotionY;
+                    double var17 = this.trackedEntity.motionZ - this.motionZ;
                     double var19 = 0.02D;
                     double var21 = var13 * var13 + var15 * var15 + var17 * var17;
 
-                    if (var21 > var19 * var19 || var21 > 0.0D && this.myEntity.motionX == 0.0D && this.myEntity.motionY == 0.0D && this.myEntity.motionZ == 0.0D)
+                    if (var21 > var19 * var19 || var21 > 0.0D && this.trackedEntity.motionX == 0.0D && this.trackedEntity.motionY == 0.0D && this.trackedEntity.motionZ == 0.0D)
                     {
-                        this.motionX = this.myEntity.motionX;
-                        this.motionY = this.myEntity.motionY;
-                        this.motionZ = this.myEntity.motionZ;
-                        this.sendPacketToAllTrackingPlayers(new Packet28EntityVelocity(this.myEntity.entityId, this.motionX, this.motionY, this.motionZ));
+                        this.lastTrackedEntityMotionX = this.trackedEntity.motionX;
+                        this.lastTrackedEntityMotionY = this.trackedEntity.motionY;
+                        this.motionZ = this.trackedEntity.motionZ;
+                        this.sendPacketToTrackedPlayers(new Packet28EntityVelocity(this.trackedEntity.entityId, this.lastTrackedEntityMotionX, this.lastTrackedEntityMotionY, this.motionZ));
                     }
                 }
 
+
                 if (var10 != null)
                 {
-                    this.sendPacketToAllTrackingPlayers((Packet)var10);
+                    this.sendPacketToTrackedPlayers((Packet)var10);
                 }
 
                 this.func_111190_b();
 
                 if (var11)
                 {
-                    this.lastScaledXPosition = var2;
-                    this.lastScaledYPosition = var3;
-                    this.lastScaledZPosition = var4;
+                    this.encodedPosX = var2;
+                    this.encodedPosY = var3;
+                    this.encodedPosZ = var4;
                 }
 
                 if (var12)
                 {
-                    this.lastYaw = var5;
-                    this.lastPitch = var6;
+                    this.encodedRotationYaw = var5;
+                    this.encodedRotationPitch = var6;
                 }
 
                 this.ridingEntity = false;
             }
             else
             {
-                var2 = MathHelper.floor_float(this.myEntity.rotationYaw * 256.0F / 360.0F);
-                var3 = MathHelper.floor_float(this.myEntity.rotationPitch * 256.0F / 360.0F);
-                boolean var25 = Math.abs(var2 - this.lastYaw) >= 4 || Math.abs(var3 - this.lastPitch) >= 4;
+                var2 = MathHelper.floor_float(this.trackedEntity.rotationYaw * 256.0F / 360.0F);
+                var3 = MathHelper.floor_float(this.trackedEntity.rotationPitch * 256.0F / 360.0F);
+                boolean var25 = Math.abs(var2 - this.encodedRotationYaw) >= 4 || Math.abs(var3 - this.encodedRotationPitch) >= 4;
 
                 if (var25)
                 {
-                    this.sendPacketToAllTrackingPlayers(new Packet32EntityLook(this.myEntity.entityId, (byte)var2, (byte)var3));
-                    this.lastYaw = var2;
-                    this.lastPitch = var3;
+                    this.sendPacketToTrackedPlayers(new Packet32EntityLook(this.trackedEntity.entityId, (byte)var2, (byte)var3));
+                    this.encodedRotationYaw = var2;
+                    this.encodedRotationPitch = var3;
                 }
 
-                this.lastScaledXPosition = this.myEntity.myEntitySize.multiplyBy32AndRound(this.myEntity.posX);
-                this.lastScaledYPosition = MathHelper.floor_double(this.myEntity.posY * 32.0D);
-                this.lastScaledZPosition = this.myEntity.myEntitySize.multiplyBy32AndRound(this.myEntity.posZ);
+                this.encodedPosX = this.trackedEntity.myEntitySize.multiplyBy32AndRound(this.trackedEntity.posX);
+                this.encodedPosY = MathHelper.floor_double(this.trackedEntity.posY * 32.0D);
+                this.encodedPosZ = this.trackedEntity.myEntitySize.multiplyBy32AndRound(this.trackedEntity.posZ);
                 this.func_111190_b();
                 this.ridingEntity = true;
             }
 
-            var2 = MathHelper.floor_float(this.myEntity.getRotationYawHead() * 256.0F / 360.0F);
+            var2 = MathHelper.floor_float(this.trackedEntity.getRotationYawHead() * 256.0F / 360.0F);
 
             if (Math.abs(var2 - this.lastHeadMotion) >= 4)
             {
-                this.sendPacketToAllTrackingPlayers(new Packet35EntityHeadRotation(this.myEntity.entityId, (byte) var2));
+                this.sendPacketToTrackedPlayers(new Packet35EntityHeadRotation(this.trackedEntity.entityId, (byte)var2));
                 this.lastHeadMotion = var2;
             }
 
-            this.myEntity.isAirBorne = false;
+            this.trackedEntity.isAirBorne = false;
         }
 
-        ++this.ticks;
+        ++this.updateCounter;
 
-        if (this.myEntity.velocityChanged)
+        if (this.trackedEntity.velocityChanged)
         {
-            this.sendPacketToAllAssociatedPlayers(new Packet28EntityVelocity(this.myEntity));
-            this.myEntity.velocityChanged = false;
+            this.sendPacketToTrackedPlayersAndTrackedEntity(new Packet28EntityVelocity(this.trackedEntity));
+            this.trackedEntity.velocityChanged = false;
         }
     }
 
@@ -190,6 +190,7 @@
     {
         Packet packet = getPacketForThisEntity_old();
 
+        // item frames and leash knots send whole block coordinates (see original getPacketForThisEntity)
         if(this.trackedEntity instanceof EntityItemFrame || this.trackedEntity instanceof EntityLeashKnot){
                 return packet;
         }

@@ -1,4 +1,38 @@
 
+    public void setPositionAndRotation2(double par1, double par3, double par5, float par7, float par8, int par9)
+    {
+        this.setPosition(par1, par3, par5);
+        this.setRotation(par7, par8);
+
+        // Unglitch Start - remove old workaround
+        /*
+        List var10 = this.worldObj.getCollidingBoundingBoxes(this, this.boundingBox.contract(0.03125D, 0.0D, 0.03125D));
+
+        if (!var10.isEmpty())
+        {
+            double var11 = 0.0D;
+
+            for (int var13 = 0; var13 < var10.size(); ++var13)
+            {
+                AxisAlignedBB var14 = (AxisAlignedBB)var10.get(var13);
+
+                if (var14.maxY > var11)
+                {
+                    var11 = var14.maxY;
+                }
+            }
+
+            par3 += var11 - this.boundingBox.minY;
+            this.setPosition(par1, par3, par5);
+        } */
+        // --
+    }
+
+    /**
+     * Takes a position (x, y, z) and returns a collision-free position (if possible) whereas each coordinate is at least
+     * as big as the original and at most increased by 1/16, with a tendency to return low values (e.g. when
+     * there are no collisions)
+     */
     public double[] adjustServerPosition(double x, double y, double z){
         if(this.noClip){
             return new double[]{x, y, z};
@@ -21,8 +55,8 @@
                 z + (double)halfWidth);
 
         // optimization
-        if(worldObj.getCollidingBlockBounds(bb).size() < 1){
-            // no collision
+        if(worldObj.getCollidingBoundingBoxes(this, bb).size() < 1){
+            // no collision anyway - we're fine
             return new double[]{x, y, z};
         }
 
@@ -35,10 +69,11 @@
 
         // get all possible collisions
         AxisAlignedBB maxBB = bb.addCoord(moveX, moveY, moveZ);
-        List collisions = worldObj.getCollidingBlockBounds(maxBB);
+        List collisions = worldObj.getCollidingBoundingBoxes(this, maxBB);
 
 
-        // move entity back to minimum position
+        // move entity back to minimum position (with collision detection)
+        // prevents collisions at low coordinates and moves out of collisions at high coordinates
         for(Object c: collisions){
             moveY = ((AxisAlignedBB) c).calculateYOffset(bb, moveY);
         }
@@ -54,6 +89,7 @@
         }
         bb.offset(0d, 0d, moveZ);
 
+        // return resulting position
         return new double[]{(bb.maxX + bb.minX) / 2d, bb.minY + (double)this.yOffset - (double)this.ySize, (bb.maxZ + bb.minZ) / 2d};
 
     }

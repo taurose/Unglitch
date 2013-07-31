@@ -1,14 +1,14 @@
-#  Unglitch: MC-2025 fix (and more) by taurose #
+#  Unglitch: MC-2025 fix (and more) #
 Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10). It also fixes some other glitches related to entities (see 5).
 
-Besides the mod download, this repo also includes relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
+Besides the mod download, this repo also includes most of the relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
 
 Here's a rather technical description of the issues I've found and how I solved them in the mod: 
 
 
 ## 1) Race Condition (Client vs. Server Thread) ##
 
-Entities are sometimes able to escape fenced areas by "glitching" through blocks during normal gameplay. This can only happen if an **integrated server** is used (single player, or opened to LAN) and only with specific blocks. The more entities collide with a certain block, the likelier it is for them to escape.
+Entities are sometimes able to escape fenced areas by "glitching" through blocks during normal gameplay. This can only happen if an **integrated server** is used (single player, or opened to LAN) and only with specific blocks. The more entities collide with a certain block, the likelier it is for them to escape. There are also other parts of the game that are affected by the same underlying bug.
 
  
 ### The Cause ###
@@ -73,7 +73,9 @@ I've found the following blocks to be affected in a similar manner:
 
 
 ### The Solution ###
-To my knowledge, there are several possible solutions to fix this. One solution could be  to synchronize the threads, so that they won't collect the collision boxes of the same block at the same type, or use two different block objects for client and server. However, I wasn't able to find a solution that wouldn't involve lots of code changes; so, for the mod, I decided to rewrite the methods to not call *setBlockBounds* anymore, and instead construct the bounding box object directly with the calculated values. In my opinion, this is the cleanest solution.
+To my knowledge, there are several possible solutions to fix this. One solution could be  to synchronize the threads, so that they won't collect the collision boxes of the same block at the same type, or use two different block (bounds) objects for client and server. However, I wasn't able to find a solution that wouldn't involve lots of code changes and refactoring; so, for the mod, I decided to implement [Daniel King's fix](https://docs.google.com/file/d/0B89TxHEJMb4BYXdYQVpNaVZjNW8/edit) for this issue ([source](https://docs.google.com/file/d/0B89TxHEJMb4BYXdYQVpNaVZjNW8/edit)), which fixes all related bugs (possibly at a slight a performance cost). 
+
+
 
 
 ## 2) Floating Point Errors on Entity Load ##
@@ -119,37 +121,34 @@ This way, entities which are barely inside of blocks won't be able to move furth
 
 ## 3) Entity Position Synchronization Issues
 
-In the current *EntityTrackerEntry* implementation (the class that sends position updates of entities) there are several logical bugs that may cause the clients' and server's entity positions to go out of sync. The client-side misplacements result in glitches, which are usually resolved with the next (relative or absolute) position update. I've found the following errors:
 
-* when an absolute position update is sent (*Packet34EntityTeleport*), the server does not always save the entity's position (for subsequent relative position updates)
-* when no packet is sent during the first (attempted) update, the server *does* save the position
-* the spawn packets contain the entity's current position rather than the one saved in the tracker object
 
-Interestingly, this also fixes [https://mojang.atlassian.net/browse/MC-19331](https://mojang.atlassian.net/browse/MC-19331 "MC-19331"). That's because when placing a minecart on a slope, the server first sends the lower position (as if it was placed on flat rails) in the spawn packet, and then attempts to update the heightened position, which is, however, canceled (first update), yet the position is saved as if it was sent to the clients.
+1. In the current *EntityTrackerEntry* implementation (the class that sends position updates of entities) there are several logical bugs that may cause the clients' and server's entity positions to go out of sync. The client-side misplacements result in glitches, which are usually resolved with the next (relative or absolute) position update. I've found the following errors:
+
+    * when an absolute position update is sent (*Packet34EntityTeleport*), the server does not always save the entity's position (for subsequent relative position updates)
+    * when no packet is sent during the first (attempted) update, the server *does* save the position
+    * the spawn packets contain the entity's current position rather than the one saved in the tracker object
+
+    Interestingly, this also fixes [https://mojang.atlassian.net/browse/MC-19331](https://mojang.atlassian.net/browse/MC-19331 "MC-19331"). That's because when placing a minecart on a slope, the server first sends the lower position (as if it was placed on flat rails) in the spawn packet, and then attempts to update the heightened position, which is, however, canceled (first update), yet the position is saved as if it was sent to the clients.
+
+2. When the client spawns slimes or ageable animals, their real size is set too late, which can lead to temporary visual glitches after the first tick.
+
+3. XP orbs are spawning client-side at a multiple of their server position (32x), essentially rendering them invisible for the first few seconds. See [MC-12013](https://mojang.atlassian.net/browse/MC-12013).   
 
 
 ## 4) Adjusting the Position Received from Server
-First off, I guess this is not really a bug requiring a fix, but rather a limitation due to minecraft updating positions in ints and bytes rather than doubles (for performance reasons), which requires a decent workaround. In the end, the issue boils down to received positions being off by up to 1/32, which leads to massive visual glitches if not adjusted in some way.
+First off, I'd say this is not really a bug requiring a fix, but rather a limitation due to minecraft updating positions in ints and bytes rather than doubles (for performance reasons), which requires a decent workaround. In the end, the issue boils down to received positions being off by up to 1/32, which leads to massive visual glitches if not adjusted in some way.
 
-There's already a server-side workaround in place which is working quite well, especially with the other issues mentioned here being solved. However, in some set-ups, it works very poorly, so I decided to come up with my own, client-side workaround which works by moving the entity from its maximally possible position (all coordinates +1/32) back to the original position (true position rounded towards negative infinity by the server).
+There's already a server-side workaround in place which is working quite well, especially with the other issues mentioned here being solved. However, in some set-ups, it works very poorly, so I decided to come up with my own, client-side workaround which works by moving the entity from its maximally possible position (all coordinates +1/32) back to the original position (real position rounded towards negative infinity by the server).
 
 
 ## 5) Miscellaneous
-* When the client receives a spawn packet of a baby animal, their reduced size is applied after setting the spawn position, which can cause temporary glitches until the first position update  
-* I've implemented a tiny workaround for the client not considering the swimming capabilities of some mobs, which could falsely make them appear to be sinking.
-* I've also implemented a client-side workaround to fix spiders falsely appearing to fall down
 
+* **Swimmers**: A tiny workaround for the client not considering the swimming capabilities of some mobs, which could falsely make them appear to be sinking
+* **Spiders**: A client-side workaround to fix spiders falsely appearing to fall down
+* **Boats**: Added collision check to client-side boats when they are not ridden by the player (fixes [MC-3441](https://mojang.atlassian.net/browse/MC-3441)) and added minimal gravity to make them update their onGround flag (reduces the "jerky" movements of boats on the ground).
+* **XP Orbs**: Currently, the size of xp orbs changes from 0.5 to 0.25 after restarting the server/game, and it's always 0.5 client-side. I simply changed it to be 0.25 in all cases.
+* **XP Orbs & Items**: Changed the pushOutOfBlocks method to be called server-side since it seems to be causing client/server discrepancies. Also made the server send more updates when the entity is being pushed (could be left out to save bandwidth).    
 
-## Remaining Issues
-Unfortunately, there are still several scenarios which may still cause temporary client-side glitches, but I hope that all permanent ones are solved with this.
-
-* when starting a game (or teleporting), some mobs may glitch out for a few seconds, because not all adjacents chunks have been received before the (client-side) mob spawn. This happens quite rarely and fixes itself very quickly though.
-* an entity barely standing on a cliff can appear to repeatedly fall down client-side. This is related to the temporary client-side glitches (see 4). I decided not to pursue this for the mod, because it would probably overcomplicate the code and because I find this glitch far less annoying than the others, mostly because it can't add up like the others do in certain mob contraptions (multiple mobs would just push each other off the cliff). 
-* probably more
-
-
-## Licensing ##
-
-The original source code of Minecraft belongs to [https://mojang.com/](https://mojang.com/ "Mojang"). I make no claim of ownership to any of the source code modifications shown in this repository. 
-	
-[![githalytics.com alpha](https://cruel-carlota.gopagoda.com/0ad0fa5d8733c89cd292d40d3f252c3f "githalytics.com")](http://githalytics.com/taurose/Unglitch)
+## Remaining Issues?
+Unfortunately, there are several scenarios which may still cause temporary client-side glitches, but I hope that the annoying and permanent ones are solved with this.
