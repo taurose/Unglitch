@@ -148,7 +148,7 @@ There's already a server-side workaround in place which is working quite well, e
 * **Spiders**: A client-side workaround to fix spiders falsely appearing to fall down
 * **Boats**: Added collision check to client-side boats when they are not ridden by the player (fixes [MC-3441](https://mojang.atlassian.net/browse/MC-3441)) and added minimal gravity to make them update their onGround flag (reduces the "jerky" movements of boats on the ground).
 * **XP Orbs**: Currently, the size of xp orbs changes from 0.5 to 0.25 after restarting the server/game, and it's always 0.5 client-side. I simply changed it to be 0.25 in all cases.
-* **XP Orbs & Items**: Changed the pushOutOfBlocks method to be called server-side since it seems to be causing client/server discrepancies. Also made the server send more updates when the entity is being pushed (could be left out to save bandwidth).    
+* **XP Orbs & Items**: Changed the pushOutOfBlocks method to be called server-side since it seems to be causing client/server discrepancies.
 
 ## Remaining Issues?
 Unfortunately, there are several scenarios which may still cause temporary client-side glitches, but I hope that the annoying and permanent ones are solved with this.

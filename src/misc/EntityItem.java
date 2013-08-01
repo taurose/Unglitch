@@ -16,7 +16,7 @@
         if(!worldObj.isRemote){
             this.noClip = this.pushOutOfBlocks(this.posX, (this.boundingBox.minY + this.boundingBox.maxY) / 2.0D, this.posZ);
             if(this.noClip){
-                this.isAirBorne = true;     // send motion updates when pushing (can be omitted to save bandwidth)
+                //this.isAirBorne = true;     // send motion updates when pushing (can be omitted to save bandwidth)
             }
         }
         else{

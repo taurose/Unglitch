@@ -39,7 +39,7 @@
         //this.pushOutOfBlocks(this.posX, (this.boundingBox.minY + this.boundingBox.maxY) / 2.0D, this.posZ);
         if(!worldObj.isRemote){
             if(this.pushOutOfBlocks(this.posX, (this.boundingBox.minY + this.boundingBox.maxY) / 2.0D, this.posZ)){
-                this.isAirBorne = true;    // send update after pushing (can be omitted to save bandwidth)
+               // this.isAirBorne = true;    // send update after pushing (can be omitted to save bandwidth)
             }
         }
         // --
