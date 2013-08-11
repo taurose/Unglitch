@@ -1,7 +1,12 @@
 #  Unglitch: MC-2025 fix (and more) #
-Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10). It also fixes some other glitches related to entities (see 5).
+Unglitch is a Minecraft mod to stop entities from (permanently or temporarily) glitching through walls. See [https://mojang.atlassian.net/browse/MC-2025](https://mojang.atlassian.net/browse/MC-2025) and [https://mojang.atlassian.net/browse/MC-10](https://mojang.atlassian.net/browse/MC-10). It also fixes some other glitches related to entities.
 
-Besides the mod download, this repo also includes most of the relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
+Also see:
+
+- [http://chunkbase.com/mods/unglitch](http://chunkbase.com/mods/unglitch)
+- [http://www.minecraftforum.net/topic/1920678-162-unglitch-fix-for-escaping-animals-and-more/](http://www.minecraftforum.net/topic/1920678-162-unglitch-fix-for-escaping-animals-and-more/)
+
+This repo includes most of the relevant source code snippets (search for "Unglitch" to quickly find changes in larger files), and some test worlds.
 
 Here's a rather technical description of the issues I've found and how I solved them in the mod: 
 
@@ -77,8 +82,23 @@ To my knowledge, there are several possible solutions to fix this. One solution 
 
 
 
+## 2) Wrong Collision Bounding Boxes (Chests, Anvils)
 
-## 2) Floating Point Errors on Entity Load ##
+Minecraft often uses a wrong collision bounding box for chest and anvils, which leads to players being pushed away from them and NPCs being able to walk through them (see [MC-1635](https://mojang.atlassian.net/browse/MC-1635) and [MC-1669](https://mojang.atlassian.net/browse/MC-1669)). A demonstration can be found here: [http://www.youtube.com/watch?v=y1kon5Wax8I](http://www.youtube.com/watch?v=y1kon5Wax8I), although it seems to only affect anvils and chests now.
+
+This can easily be fixed by adding (overriding) the following method to BlockAnvil and BlockChest:
+
+	public AxisAlignedBB getCollisionBoundingBoxFromPool(World par1World, int par2, int par3, int par4)
+	{
+	    this.setBlockBoundsBasedOnState(par1World, par2, par3, par4);
+	    return super.getCollisionBoundingBoxFromPool(par1World, par2, par3, par4);
+	}
+
+This ensures that the bounding box is updated before collision detection. The same method is also used for other blocks, like trap doors. It is, however, susceptible to the race condition mentioned in 1). The race condition fix used for the mod is able to account for that though.
+
+
+
+## 3) Floating Point Errors on Entity Load ##
 
 Entities can sometimes also glitch trough *any* block on chunk load (when they are read from NBT). This should affect pretty much any environment (client and server). It seems to happen most often when the X or Z coordinate is close to a power of two, or when an entity is moving upwards.
 
@@ -119,8 +139,7 @@ Again, there might be a couple of valid solutions. Though from what I know about
 This way, entities which are barely inside of blocks won't be able to move further inside and will be pushed out instead. By comparing the integer values, the accepted error range scales with the magnitude of possible rounding errors. However, even for coordinates at 10M, the range will be below a millionth, so there should be little side effects on game play.
 
 
-## 3) Entity Position Synchronization Issues
-
+## 4) Entity Position Synchronization Issues
 
 
 1. In the current *EntityTrackerEntry* implementation (the class that sends position updates of entities) there are several logical bugs that may cause the clients' and server's entity positions to go out of sync. The client-side misplacements result in glitches, which are usually resolved with the next (relative or absolute) position update. I've found the following errors:
@@ -136,13 +155,14 @@ This way, entities which are barely inside of blocks won't be able to move furth
 3. XP orbs are spawning client-side at a multiple of their server position (32x), essentially rendering them invisible for the first few seconds. See [MC-12013](https://mojang.atlassian.net/browse/MC-12013).   
 
 
-## 4) Adjusting the Position Received from Server
+## 5) Adjusting the Position Received from Server
 First off, I'd say this is not really a bug requiring a fix, but rather a limitation due to minecraft updating positions in ints and bytes rather than doubles (for performance reasons), which requires a decent workaround. In the end, the issue boils down to received positions being off by up to 1/32, which leads to massive visual glitches if not adjusted in some way.
 
 There's already a server-side workaround in place which is working quite well, especially with the other issues mentioned here being solved. However, in some set-ups, it works very poorly, so I decided to come up with my own, client-side workaround which works by moving the entity from its maximally possible position (all coordinates +1/32) back to the original position (real position rounded towards negative infinity by the server).
 
 
-## 5) Miscellaneous
+
+## 6) Miscellaneous
 
 * **Swimmers**: A tiny workaround for the client not considering the swimming capabilities of some mobs, which could falsely make them appear to be sinking
 * **Spiders**: A client-side workaround to fix spiders falsely appearing to fall down
