@@ -148,7 +148,7 @@ This way, entities which are barely inside of blocks won't be able to move furth
     2. when no packet is sent during the first (attempted) update, the server *does* save the position
     3. the spawn packets contain the entity's current position rather than the one saved in the tracker object
 
-Interestingly, this also fixes [https://mojang.atlassian.net/browse/MC-19331](https://mojang.atlassian.net/browse/MC-19331 "MC-19331"). That's because when placing a minecart on a slope, the server first sends the lower position (as if it was placed on flat rails) in the spawn packet, and then attempts to update the heightened position, which is, however, canceled (first update), yet the position is saved as if it was sent to the clients.
+    Interestingly, this also fixes [https://mojang.atlassian.net/browse/MC-19331](https://mojang.atlassian.net/browse/MC-19331 "MC-19331"). That's because when placing a minecart on a slope, the server first sends the lower position (as if it was placed on flat rails) in the spawn packet, and then attempts to update the heightened position, which is, however, canceled (first update), yet the position is saved as if it was sent to the clients.
 
 2. When the client spawns slimes or ageable animals, their real size is set too late, which can lead to temporary visual glitches after the first tick.
 
